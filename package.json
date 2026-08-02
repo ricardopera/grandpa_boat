@@ -1,0 +1,15 @@
+{
+  "name": "barco-do-vovo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Jogo em three.js: três missões de barco entre as ilhas da Baía Dourada.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs",
+    "test": "node test/playthrough.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}

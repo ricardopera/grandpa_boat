@@ -1,0 +1,41 @@
+name: Publicar no GitHub Pages
+
+# O jogo é estático (HTML + módulos ES + three.js em vendor/), então o próprio
+# repositório é o site: basta enviá-lo como artefato do Pages.
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Uma publicação por vez; não cancela a que já estiver rodando.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Não usamos `configure-pages`: ele só serve para expor base_url a
+      # geradores de site, e o `enablement` dele não funciona com o
+      # GITHUB_TOKEN (criar o site do Pages exige admin do repositório).
+      # O Pages precisa estar ligado uma vez em Settings → Pages → Source:
+      # GitHub Actions; depois disso este workflow publica sozinho.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
