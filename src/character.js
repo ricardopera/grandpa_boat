@@ -1,16 +1,45 @@
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { flat, mesh } from './materials.js';
+import { shadowTexture } from './textures.js';
 
 /**
  * Os bichos da Baía Dourada: capivaras (focinho quadrado e orelhinhas redondas),
  * lontras (cabeça achatada, barriga clara e cauda de remo) e tatus (focinho
  * pontudo, orelhas compridas e casco de faixas nas costas).
  */
+// Quanto o braço fica aberto em repouso. Mais que isto e ele entra no corpo.
+const REST_ARM = 0.16;
+
+// Uma sombra por personagem, com o mesmo material: sem ela, quem está em pé na
+// calota da ilha parece pairar uns dez centímetros acima da grama.
+let shadowMaterial = null;
+function createShadow(radius) {
+  shadowMaterial ??= new THREE.MeshBasicMaterial({
+    map: shadowTexture(),
+    transparent: true,
+    depthWrite: false,
+    opacity: 0.55,
+  });
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(radius * 2, radius * 2), shadowMaterial);
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = 0.03;
+  shadow.renderOrder = 1;
+  return shadow;
+}
+
 const SPECIES = {
   capivara: { skin: PALETTE.capySkin, snout: 'blunt', ears: 'round', tail: 'none' },
   lontra: { skin: PALETTE.otterSkin, snout: 'sleek', ears: 'tiny', tail: 'paddle' },
   tatu: { skin: PALETTE.armadilloSkin, snout: 'point', ears: 'long', tail: 'taper' },
+};
+
+// Onde fica a boca em cada focinho: na base do bloco da capivara, logo abaixo
+// do narizinho da lontra e junto da ponta do cone do tatu.
+const MOUTH_AT = {
+  blunt: { y: -0.12, z: 0.56, r: 0.075 },
+  sleek: { y: -0.15, z: 0.5, r: 0.08 },
+  point: { y: -0.13, z: 0.55, r: 0.06 },
 };
 
 function createEars(kind, skin) {
@@ -82,10 +111,10 @@ function createSnout(kind, skin) {
 
 function createTail(kind, skin) {
   if (kind === 'paddle') {
-    // Cauda achatada da lontra, saindo para trás e para baixo.
+    // Cauda achatada da lontra, saindo por baixo e caindo em direção ao chão.
     const tail = mesh(new THREE.SphereGeometry(0.2, 10, 8), flat(skin));
     tail.scale.set(0.55, 0.3, 1.5);
-    tail.rotation.x = 0.5;
+    tail.rotation.x = -0.55;
     return tail;
   }
   if (kind === 'taper') {
@@ -206,6 +235,7 @@ export function createCharacter(options = {}) {
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);
+  root.add(createShadow(adult ? 0.5 : 0.38));
 
   // Proporções de desenho: cabeça grande, corpo curto e pernas curtinhas — mas
   // com braços e pernas para fora da silhueta, senão a bolha do corpo os engole.
@@ -238,16 +268,19 @@ export function createCharacter(options = {}) {
     body.add(shoe);
   }
 
-  // Braços: pivô no ombro, abertos o bastante para aparecerem de qualquer ângulo.
-  const armGeometry = new THREE.CylinderGeometry(0.06, 0.06, 0.5, 7);
+  // Braços: o ombro fica fora da bolha do corpo e o braço pende quase reto.
+  // Se o pivô encosta na casca e o braço abre muito, ele mergulha para dentro
+  // do torso e o personagem vira uma bola sem braços de costas.
+  const armGeometry = new THREE.CylinderGeometry(0.06, 0.06, 0.52, 7);
   const arms = [];
   for (const sx of [-1, 1]) {
     const pivot = new THREE.Group();
-    pivot.position.set(sx * bodyRadius * 1.06, torsoY + torsoHeight * 0.2, 0.04);
-    const arm = mesh(armGeometry, flat(skinColor), 0, -0.25, 0);
-    pivot.add(arm);
-    pivot.add(mesh(new THREE.SphereGeometry(0.09, 8, 6), flat(skinColor), 0, -0.5, 0));
-    pivot.rotation.z = sx * -0.72;
+    pivot.position.set(sx * bodyRadius * 1.15, torsoY + torsoHeight * 0.22, 0.04);
+    // Esfera do ombro: tapa o vão entre o corpo e o braço afastado.
+    pivot.add(mesh(new THREE.SphereGeometry(adult ? 0.13 : 0.1, 9, 7), flat(clothes)));
+    pivot.add(mesh(armGeometry, flat(skinColor), 0, -0.26, 0));
+    pivot.add(mesh(new THREE.SphereGeometry(0.09, 8, 6), flat(skinColor), 0, -0.52, 0));
+    pivot.rotation.z = sx * -REST_ARM;
     body.add(pivot);
     arms.push(pivot);
   }
@@ -262,7 +295,7 @@ export function createCharacter(options = {}) {
   // Cauda, quando a espécie tem uma.
   const tail = createTail(config.tail, species === 'lontra' ? PALETTE.otterSkin : skinColor);
   if (tail) {
-    tail.position.set(0, torsoY - torsoHeight * 0.25, -bodyRadius * 0.95);
+    tail.position.set(0, legHeight * 0.75, -bodyRadius * 0.9);
     body.add(tail);
   }
 
@@ -305,7 +338,15 @@ export function createCharacter(options = {}) {
     cheek.rotation.y = sx * 0.5;
     head.add(cheek);
   }
-  const smile = mesh(new THREE.TorusGeometry(0.1, 0.022, 6, 12, Math.PI), flat(0x2b2b2b), 0, -0.17, 0.4);
+  // A boca acompanha o focinho: solta no meio da cara ela lê como um bigode.
+  const mouth = MOUTH_AT[config.snout];
+  const smile = mesh(
+    new THREE.TorusGeometry(mouth.r, 0.02, 6, 12, Math.PI),
+    flat(0x2b2b2b),
+    0,
+    mouth.y,
+    mouth.z
+  );
   smile.rotation.z = Math.PI;
   head.add(smile);
 
@@ -341,7 +382,7 @@ export function updateCharacter(character, time, dt) {
 
   const wave = data.waving;
   const swing = Math.sin(time * 9) * 0.6;
-  data.arms[1].rotation.z = -0.35 - wave * (2.4 + swing * 0.3);
+  data.arms[1].rotation.z = -REST_ARM - wave * (2.6 + swing * 0.3);
   data.arms[1].rotation.x = wave * swing * 0.2;
-  data.arms[0].rotation.z = 0.35 + Math.sin(time * 2 + data.phase) * 0.05;
+  data.arms[0].rotation.z = REST_ARM + Math.sin(time * 2 + data.phase) * 0.05;
 }

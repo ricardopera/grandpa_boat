@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
-import { flat, flatUnique, mesh, extrude } from './materials.js';
+import { flat, flatUnique, mesh, beam, extrude } from './materials.js';
 import { flagTexture } from './textures.js';
 import { createCharacter } from './character.js';
 import { waveHeight } from './world.js';
@@ -197,19 +197,34 @@ function createLifeRing() {
   return group;
 }
 
-function createRailing(width = 1.6) {
+/**
+ * Guarda-corpo da proa: em vez de uma grade reta solta no meio do convés, os
+ * postes nascem no próprio contorno do casco e as barras ligam um poste ao
+ * seguinte — assim a grade acompanha a curva da proa e encosta nas amuradas.
+ */
+function createRailing() {
   const railing = new THREE.Group();
   const material = flat(PALETTE.metal);
-  const post = new THREE.CylinderGeometry(0.035, 0.035, 0.7, 6);
-  const posts = 4;
-  for (let i = 0; i < posts; i++) {
-    const x = (i / (posts - 1) - 0.5) * width;
-    railing.add(mesh(post, material, x, 0.35, 0));
-  }
-  for (const y of [0.35, 0.62]) {
-    const bar = mesh(new THREE.CylinderGeometry(0.035, 0.035, width, 6), material, 0, y, 0);
-    bar.rotation.z = Math.PI / 2;
-    railing.add(bar);
+  const post = new THREE.CylinderGeometry(0.035, 0.035, 0.72, 6);
+
+  // Pontos do contorno na metade da frente do barco, de bombordo a boreste.
+  const outline = hullOutline(24)
+    .filter((p) => p.y > HALF_LENGTH * 0.42)
+    .sort((a, b) => Math.atan2(a.x, a.y) - Math.atan2(b.x, b.y))
+    .map((p) => new THREE.Vector3(p.x * 0.86, 0, p.y * 0.9));
+
+  // Um poste sim, um não: com um poste por vértice a grade vira uma serra.
+  outline.forEach((ponto, i) => {
+    if (i % 2 === 0 || i === outline.length - 1) {
+      railing.add(mesh(post, material, ponto.x, 0.36, ponto.z));
+    }
+  });
+  for (let i = 0; i < outline.length - 1; i++) {
+    for (const y of [0.36, 0.66]) {
+      const de = outline[i].clone().setY(y);
+      const para = outline[i + 1].clone().setY(y);
+      railing.add(beam(de, para, 0.035, material, 6));
+    }
   }
   return railing;
 }
@@ -297,6 +312,7 @@ export class Boat {
 
     // Cabine.
     const cabin = new THREE.Group();
+    cabin.name = 'cabine';
     cabin.position.set(0, DECK, 0.1);
     cabin.add(mesh(new THREE.BoxGeometry(1.55, 1.15, 1.35), flat(PALETTE.woodDeck), 0, 0.58, 0));
     cabin.add(mesh(new THREE.BoxGeometry(1.75, 0.14, 1.55), flat(PALETTE.woodDark), 0, 1.22, 0));
@@ -313,12 +329,14 @@ export class Boat {
     }
     // Boia pendurada na parede de trás da cabine, de frente para o leme.
     const boia = createLifeRing();
+    boia.name = 'boia';
     boia.position.set(0, 0.62, -0.7);
     cabin.add(boia);
     this.hullPivot.add(cabin);
 
     // Mastro com a bandeira do sol e da onda.
     const mast = new THREE.Group();
+    mast.name = 'mastro';
     mast.position.set(0, DECK, 1.15);
     mast.add(mesh(new THREE.CylinderGeometry(0.075, 0.09, 3.6, 8), flat(0xf7f9fc), 0, 1.8, 0));
     mast.add(mesh(new THREE.SphereGeometry(0.16, 10, 8), flat(PALETTE.hullTrim), 0, 3.66, 0));
@@ -338,22 +356,26 @@ export class Boat {
       mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.9, 8), flat(PALETTE.woodDark), 0, DECK + 0.45, -1.35)
     );
     const wheel = createShipWheel();
+    wheel.name = 'leme';
     wheel.position.set(0, DECK + 1.0, -1.35);
     this.hullPivot.add(wheel);
     this.wheel = wheel;
 
     const bell = createBell();
+    bell.name = 'sino';
     bell.position.set(0.5, DECK, 1.95);
     this.hullPivot.add(bell);
     this.bell = bell.userData.bell;
 
     const parrot = createParrot();
+    parrot.name = 'arara';
     parrot.position.set(-0.5, DECK, 2.1);
     this.hullPivot.add(parrot);
     this.parrot = parrot.userData.bird;
 
-    const railing = createRailing(1.5);
-    railing.position.set(0, DECK, 2.45);
+    const railing = createRailing();
+    railing.name = 'guarda-corpo';
+    railing.position.set(0, DECK, 0);
     this.hullPivot.add(railing);
 
     // Tripulação fixa: o Vovô Tonico no leme e a Vovó Marina no convés.
