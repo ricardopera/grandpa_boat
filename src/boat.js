@@ -365,7 +365,7 @@ export class Boat {
 
     const bell = createBell();
     bell.name = 'sino';
-    bell.position.set(0.85, DECK, 1.25);
+    bell.position.set(0.82, DECK, -0.55);
     this.hullPivot.add(bell);
     this.bell = bell.userData.bell;
 
@@ -404,8 +404,8 @@ export class Boat {
       hat: 'sun',
       name: 'Vovó Marina',
     });
-    grandma.position.set(0.1, DECK, 1.25);
-    grandma.rotation.y = -2.4;
+    grandma.position.set(0.52, DECK, 1.55);
+    grandma.rotation.y = -2.1;
     this.hullPivot.add(grandma);
     this.crew.push(grandma);
 
@@ -487,8 +487,9 @@ export class Boat {
       Math.sin(time * 1.7 + next.x * 0.05) * 0.03 - this.speed * 0.006;
 
     // Detalhes vivos: bandeira, papagaia e sino.
-    this.flag.rotation.z = Math.sin(time * 4) * 0.12;
-    this.flag.scale.x = 1 + Math.sin(time * 6) * 0.05;
+    // O balanço gira em volta do mastro, e não estica o pano pelo meio.
+    this.flag.rotation.y = Math.sin(time * 3.2) * 0.2;
+    this.flag.rotation.z = Math.sin(time * 4) * 0.07;
     this.parrot.rotation.z = Math.sin(time * 3) * 0.12;
     this.parrot.position.y = 1.45 + Math.sin(time * 2.5) * 0.03;
     this.wheel.rotation.z = -this.turn * 1.6;
