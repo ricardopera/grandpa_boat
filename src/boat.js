@@ -205,7 +205,7 @@ function createLifeRing() {
 function createRailing() {
   const railing = new THREE.Group();
   const material = flat(PALETTE.metal);
-  const post = new THREE.CylinderGeometry(0.035, 0.035, 0.72, 6);
+  const post = new THREE.CylinderGeometry(0.035, 0.035, 0.5, 6);
 
   // Pontos do contorno na metade da frente do barco, de bombordo a boreste.
   const outline = hullOutline(24)
@@ -213,14 +213,15 @@ function createRailing() {
     .sort((a, b) => Math.atan2(a.x, a.y) - Math.atan2(b.x, b.y))
     .map((p) => new THREE.Vector3(p.x * 0.86, 0, p.y * 0.9));
 
-  // Um poste sim, um não: com um poste por vértice a grade vira uma serra.
+  // Um poste a cada três vértices: mais que isso e a grade vira uma cerca de
+  // piquete, que não é o que se põe na proa de um barco.
   outline.forEach((ponto, i) => {
-    if (i % 2 === 0 || i === outline.length - 1) {
-      railing.add(mesh(post, material, ponto.x, 0.36, ponto.z));
+    if (i % 3 === 0 || i === outline.length - 1) {
+      railing.add(mesh(post, material, ponto.x, 0.25, ponto.z));
     }
   });
   for (let i = 0; i < outline.length - 1; i++) {
-    for (const y of [0.36, 0.66]) {
+    for (const y of [0.25, 0.47]) {
       const de = outline[i].clone().setY(y);
       const para = outline[i + 1].clone().setY(y);
       railing.add(beam(de, para, 0.035, material, 6));
@@ -334,18 +335,19 @@ export class Boat {
     cabin.add(boia);
     this.hullPivot.add(cabin);
 
-    // Mastro com a bandeira do sol e da onda.
+    // Mastro com a bandeira do sol e da onda. Ele nasce do teto da cabine: no
+    // convés ficava a dez centímetros da Vovó Marina e saía do meio do chapéu.
     const mast = new THREE.Group();
     mast.name = 'mastro';
-    mast.position.set(0, DECK, 1.15);
-    mast.add(mesh(new THREE.CylinderGeometry(0.075, 0.09, 3.6, 8), flat(0xf7f9fc), 0, 1.8, 0));
-    mast.add(mesh(new THREE.SphereGeometry(0.16, 10, 8), flat(PALETTE.hullTrim), 0, 3.66, 0));
+    mast.position.set(0, DECK + 1.29, 0.1);
+    mast.add(mesh(new THREE.CylinderGeometry(0.07, 0.085, 2.6, 8), flat(0xf7f9fc), 0, 1.3, 0));
+    mast.add(mesh(new THREE.SphereGeometry(0.14, 10, 8), flat(PALETTE.hullTrim), 0, 2.64, 0));
     const flagMaterial = new THREE.MeshLambertMaterial({
       map: flagTexture(),
       side: THREE.DoubleSide,
     });
     const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.8, 6, 1), flagMaterial);
-    flag.position.set(0.55, 3.0, 0);
+    flag.position.set(0.55, 2.1, 0);
     flag.rotation.y = Math.PI / 2;
     mast.add(flag);
     this.hullPivot.add(mast);
@@ -363,13 +365,13 @@ export class Boat {
 
     const bell = createBell();
     bell.name = 'sino';
-    bell.position.set(0.5, DECK, 1.95);
+    bell.position.set(0.85, DECK, 1.25);
     this.hullPivot.add(bell);
     this.bell = bell.userData.bell;
 
     const parrot = createParrot();
     parrot.name = 'arara';
-    parrot.position.set(-0.5, DECK, 2.1);
+    parrot.position.set(-0.85, DECK, 1.3);
     this.hullPivot.add(parrot);
     this.parrot = parrot.userData.bird;
 
