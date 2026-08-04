@@ -50,6 +50,22 @@ function checa(condicao, mensagem) {
   if (!condicao) process.exitCode = 1;
 }
 
+// ---------- Peças que precisam estar encostadas ----------
+// A bandeira já ficou pendurada no ar duas vezes, e foto de perto não resolveu:
+// dependendo da fase do balanço ela PARECE encostada. Isto mede.
+const bandeira = await page.evaluate(() => {
+  const { boat } = window.baia;
+  const V = boat.position.constructor;
+  const mastro = boat.flag.parent;
+  const pano = boat.flag.children[0];
+  const eixo = mastro.getWorldPosition(new V());
+  // Os dois cantos verticais do pano: um deles tem de tocar o mastro.
+  return [-0.525, 0.525]
+    .map((x) => pano.localToWorld(new V(x, 0, 0)))
+    .reduce((menor, c) => Math.min(menor, Math.hypot(c.x - eixo.x, c.z - eixo.z)), Infinity);
+});
+checa(bandeira < 0.15, `bandeira encostada no mastro (borda a ${bandeira.toFixed(2)} do eixo)`);
+
 // ---------- Missão 1: carona ----------
 const paradas = await page.evaluate(() =>
   window.baia.game.islands

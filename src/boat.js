@@ -346,12 +346,19 @@ export class Boat {
       map: flagTexture(),
       side: THREE.DoubleSide,
     });
+    // A bandeira precisa nascer no mastro. Com o pano girado 90° em y, a largura
+    // dele passa para z — então um deslocamento em x não é "meia largura para o
+    // lado", e sim distância até o poste: era isso que a deixava pendurada no ar.
+    // O pivô fica no mastro e o pano se estende para a popa a partir dele.
+    const flagPivot = new THREE.Group();
+    flagPivot.position.set(0, 2.1, 0);
     const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.8, 6, 1), flagMaterial);
-    flag.position.set(0.55, 2.1, 0);
     flag.rotation.y = Math.PI / 2;
-    mast.add(flag);
+    flag.position.z = -0.525;
+    flagPivot.add(flag);
+    mast.add(flagPivot);
     this.hullPivot.add(mast);
-    this.flag = flag;
+    this.flag = flagPivot;
 
     // Leme numa coluna, sino, papagaia e guarda-corpo da proa.
     this.hullPivot.add(
