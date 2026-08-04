@@ -62,6 +62,7 @@ export function createTree(scale = 1, withApples = false) {
 /** Arbusto: bolhas verdes achatadas. */
 export function createBush(scale = 1) {
   const bush = new THREE.Group();
+  bush.name = 'arbusto';
   const geometry = new THREE.SphereGeometry(0.5, 14, 10);
   const blobs = [
     [0, 0.3, 0, 1],
@@ -137,6 +138,7 @@ export function updateSwing(swing, time) {
 /** Pequeno cais de madeira: marca onde o barco atraca. */
 export function createDock(length = 2.6) {
   const dock = new THREE.Group();
+  dock.name = 'cais';
   // Tábua corrida, com ripas por cima para dar textura sem virar uma escada.
   const base = mesh(
     new THREE.BoxGeometry(1.0, 0.14, length),
@@ -153,9 +155,15 @@ export function createDock(length = 2.6) {
     dock.add(mesh(plankGeometry, flat(PALETTE.woodDeck), 0, 0.09, -0.2 + i * 0.4));
   }
 
-  const postGeometry = new THREE.CylinderGeometry(0.08, 0.08, 1.5, 6);
-  for (const sx of [-1, 1]) {
-    dock.add(mesh(postGeometry, flat(PALETTE.woodDark), sx * 0.38, -0.7, length - 0.75));
+  // Estacas em pares ao longo de todo o cais — sem elas a prancha fica
+  // pairando sobre a areia, sem nada que a segure.
+  const postGeometry = new THREE.CylinderGeometry(0.08, 0.08, 2.2, 6);
+  const pares = Math.max(2, Math.round(length / 1.6));
+  for (let i = 0; i < pares; i++) {
+    const z = -0.2 + (i / (pares - 1)) * (length - 0.6);
+    for (const sx of [-1, 1]) {
+      dock.add(mesh(postGeometry, flat(PALETTE.woodDark), sx * 0.38, -1.05, z));
+    }
   }
   return dock;
 }

@@ -66,10 +66,10 @@ export function createIsland(config) {
   // de brigar pixel a pixel com um anel plano quase à mesma altura.
   const beachRadius = radius + BEACH_WIDTH;
   const beach = mesh(
-    new THREE.CylinderGeometry(radius * 0.94, beachRadius, 0.85, 44, 1, true),
+    new THREE.CylinderGeometry(radius * 0.9, beachRadius, 0.32, 44, 1, true),
     flat(PALETTE.sand),
     0,
-    0.025,
+    0.46,
     0
   );
   island.add(beach);
@@ -78,10 +78,10 @@ export function createIsland(config) {
   // continua sendo areia molhada, e não a base escura.
   island.add(
     mesh(
-      new THREE.CylinderGeometry(beachRadius, beachRadius * 0.98, 1.6, 44),
+      new THREE.CylinderGeometry(beachRadius, beachRadius * 0.98, 1.9, 44),
       flat(PALETTE.sandDark),
       0,
-      -1.2,
+      -0.65,
       0
     )
   );
@@ -169,7 +169,7 @@ export function createIsland(config) {
   }
 
   // Cais: fica na borda voltada para o centro do arquipélago.
-  const dock = createDock(BEACH_WIDTH + 2.6);
+  const dock = createDock(BEACH_WIDTH + 4.4);
   dock.name = 'cais';
   const dockDistance = radius - 1.0;
   dock.position.set(
