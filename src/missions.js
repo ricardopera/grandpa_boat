@@ -95,8 +95,13 @@ export class RideMission extends Mission {
   }
 
   cleanup() {
-    // Quem já chegou fica na festa: os personagens passam a ser do mundo.
-    for (const character of this.characters) this.ctx.adopt(character);
+    // Quem chegou à festa fica na ilha e passa a ser do mundo. Quem ainda
+    // esperava no cais (ou estava a bordo) sai de cena: senão, repetir a missão
+    // pelo seletor deixaria dois passageiros em cada ilha.
+    for (const character of this.characters) {
+      if (character.userData.arrived) this.ctx.adopt(character);
+      else character.parent?.remove(character);
+    }
     for (const island of this.ctx.islands) island.userData.passenger = null;
     this.characters = [];
   }
@@ -162,6 +167,7 @@ export class RideMission extends Mission {
       character.userData.boarded = false;
       // Chegou na festa: fica acenando junto da casa.
       character.userData.wantsToWave = true;
+      character.userData.arrived = true;
     });
     this.delivered += this.aboard.length;
     this.aboard = [];

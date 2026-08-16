@@ -11,7 +11,7 @@ import {
   applyDaylight,
 } from './world.js';
 import { Boat } from './boat.js';
-import { Game } from './game.js';
+import { Game, MISSIONS } from './game.js';
 import { Input, CameraRig } from './controls.js';
 import { Hud } from './hud.js';
 import { Sound } from './audio.js';
@@ -98,6 +98,14 @@ hud.onStart(() => {
   setMode('boat');
 });
 hud.onNextMission(() => game.nextMission());
+hud.buildMissionPicker(MISSIONS, (index) => {
+  sound.ensure();
+  game.startMission(index);
+  setMode('boat');
+});
+// O jogo já tinha montado o painel antes de o seletor existir: sem esta linha,
+// a missão em curso só ficaria destacada depois da primeira troca.
+game.updateHud();
 hud.onRestart(() => resetGame());
 
 input.on('key', (code) => {

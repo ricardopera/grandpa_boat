@@ -208,6 +208,38 @@ button:active {
   padding: 12px 28px;
 }
 
+/* Seletor de missões: uma linha por missão, número em destaque e o título. */
+.mission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+  text-align: left;
+}
+
+.mission-list button {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  background: var(--areia);
+  font-size: 0.95rem;
+  padding: 10px 14px;
+  box-shadow: 0 4px 0 rgba(43, 68, 80, 0.16);
+}
+
+.mission-list button b {
+  color: var(--verde-mar);
+}
+
+.mission-list button.atual {
+  background: var(--amarelo);
+}
+
+.card .pick-hint {
+  margin: 14px 0 0;
+}
+
 #touch {
   position: fixed;
   left: 18px;
