@@ -217,6 +217,9 @@ export class Game {
     this.mission = new MissionClass(this.context);
     this.mission.start();
     this.waiting = false;
+    // Escolher uma missão depois de zerar o jogo recomeça a contagem: sem isto
+    // o painel continuaria dizendo que está tudo cumprido.
+    this.finished = false;
     this.updateHud();
     this.hud.toast(`Missão ${index + 1}: ${MissionClass.title}`, 4.5);
   }

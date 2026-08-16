@@ -38,6 +38,7 @@
       <button id="mode-button" title="Alternar entre pilotar o barco e mover a câmera">🚤 Barco</button>
       <button id="sound-button" data-on="true">🔊 Som</button>
       <button id="fullscreen-button">⛶ Tela cheia</button>
+      <button id="missions-button">🗺 Missões</button>
       <button id="help-button">❔ Ajuda</button>
     </div>
 
@@ -87,6 +88,17 @@
           W/S aceleram · A/D viram · C troca para a câmera livre · H toca o sino
         </p>
         <button id="start-button">Zarpar!</button>
+        <p class="small pick-hint">ou comece direto por uma missão:</p>
+        <div class="mission-list" id="start-mission-list"></div>
+      </div>
+    </div>
+
+    <div id="missions" class="overlay hidden">
+      <div class="card">
+        <h2>Escolher missão 🗺</h2>
+        <p class="small">Dá para pular para qualquer missão a qualquer momento.</p>
+        <div class="mission-list" id="mission-list"></div>
+        <button id="missions-close">Voltar ao mar</button>
       </div>
     </div>
 

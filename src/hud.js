@@ -16,6 +16,7 @@ export class Hud {
     this.helpPanel = document.getElementById('help');
     this.victoryPanel = document.getElementById('victory');
     this.missionPanel = document.getElementById('mission-done');
+    this.pickerPanel = document.getElementById('missions');
     this.startPanel = document.getElementById('start');
     this.touchPanel = document.getElementById('touch');
     this.fullscreenButton = document.getElementById('fullscreen-button');
@@ -42,6 +43,42 @@ export class Hud {
     document.getElementById('start-button').addEventListener('click', () => {
       this.startPanel.classList.add('hidden');
       callback();
+    });
+  }
+
+  /**
+   * Seletor de missões: a mesma lista aparece na tela de início e no botão
+   * 🗺 Missões, montada a partir das missões que o jogo tem — nada de repetir
+   * títulos no HTML e deixar os dois lugares fora de sincronia.
+   */
+  buildMissionPicker(missions, onPick) {
+    this.pickerButtons = [];
+    for (const id of ['start-mission-list', 'mission-list']) {
+      const lista = document.getElementById(id);
+      lista.replaceChildren(
+        ...missions.map((MissionClass, index) => {
+          const botao = document.createElement('button');
+          const numero = document.createElement('b');
+          numero.textContent = `${index + 1}.`;
+          botao.append(numero, document.createTextNode(` ${MissionClass.title}`));
+          botao.addEventListener('click', () => {
+            this.pickerPanel.classList.add('hidden');
+            this.startPanel.classList.add('hidden');
+            this.victoryPanel.classList.add('hidden');
+            this.missionPanel.classList.add('hidden');
+            onPick(index);
+          });
+          this.pickerButtons.push({ botao, index });
+          return botao;
+        })
+      );
+    }
+
+    document.getElementById('missions-button').addEventListener('click', () => {
+      this.pickerPanel.classList.toggle('hidden');
+    });
+    document.getElementById('missions-close').addEventListener('click', () => {
+      this.pickerPanel.classList.add('hidden');
     });
   }
 
@@ -128,6 +165,10 @@ export class Hud {
 
   setMission(number, total, title) {
     this.missionLine.textContent = `Missão ${number}/${total} · ${title}`;
+    // A missão em curso fica destacada nas duas listas do seletor.
+    for (const { botao, index } of this.pickerButtons ?? []) {
+      botao.classList.toggle('atual', index === number - 1);
+    }
   }
 
   /** Os contadores da missão atual: cada um vira uma etiqueta no painel. */

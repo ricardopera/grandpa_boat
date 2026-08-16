@@ -36,6 +36,14 @@ protocolo; por isso o `npm start` sobe um servidor mínimo (`server.mjs`, sem de
 O painel do canto esquerdo mostra sempre em que missão você está, os contadores dela e o
 que fazer agora. O minimapa marca o alvo da vez.
 
+![A tela de início com as quatro missões](docs/print-missoes.png)
+
+As missões vêm encadeadas — cada uma abre a seguinte —, mas **não é preciso jogar na
+ordem**: a tela de início lista as quatro, e o botão `🗺 Missões` troca de missão a
+qualquer momento, com a atual destacada. Trocar recomeça a missão escolhida do zero e
+desfaz o que a anterior tinha montado (os caixotes somem, o pôr do sol volta a dia, os
+adversários saem do mar).
+
 ### 1. Carona para a festa 🎈
 
 Seis amigos esperam carona, um em cada ilha (marcadas com um círculo amarelo no mapa e
@@ -85,6 +93,8 @@ primeiro.
 | `C` | alterna entre pilotar o barco e a câmera livre |
 | `H` | toca o sino do barco |
 | `R` | recoloca a câmera atrás do barco |
+
+O botão `🗺 Missões` abre a lista das quatro para pular de uma para outra.
 
 O texto da missão fica direto sobre a cena, sem caixa, para ocupar o mínimo da tela.
 
@@ -147,7 +157,8 @@ npm i playwright && npm test # noutro
 
 O teste abre o jogo num Chromium, teleporta o barco pelos alvos das quatro missões e
 confere os contadores, as telas de fim de missão, a vitória, a virada do pôr do sol, a
-colocação na corrida e o recomeço — além de falhar se aparecer qualquer erro de console.
+colocação na corrida, o seletor de missões e o recomeço — além de falhar se aparecer
+qualquer erro de console.
 
 Ele também mede duas coisas que foto não resolve: se a bandeira está mesmo encostada no
 mastro (um pano em movimento *parece* encostado em certas fases do balanço) e se os

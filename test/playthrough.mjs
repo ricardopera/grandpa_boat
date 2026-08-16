@@ -66,6 +66,28 @@ const bandeira = await page.evaluate(() => {
 });
 checa(bandeira < 0.15, `bandeira encostada no mastro (borda a ${bandeira.toFixed(2)} do eixo)`);
 
+// ---------- Seletor de missões ----------
+const botoes = await page.evaluate(() => document.querySelectorAll('#mission-list button').length);
+checa(botoes === 4, `o seletor lista as 4 missões (listou ${botoes})`);
+
+await page.click('#missions-button');
+await page.click('#mission-list button:nth-child(3)');
+await tick(6);
+let s = await estado();
+checa(s.missao === 2, 'o seletor pula direto para a missão 3');
+
+await page.click('#missions-button');
+await page.click('#mission-list button:nth-child(1)');
+await tick(6);
+s = await estado();
+checa(s.missao === 0, 'o seletor volta para a missão 1');
+
+// Repetir a carona não pode deixar dois passageiros em cada ilha.
+const passageiros = await page.evaluate(() => window.baia.game.mission.characters.length);
+checa(passageiros === 6, `a carona repetida tem 6 passageiros, não o dobro (tem ${passageiros})`);
+const daylightAposPular = await page.evaluate(() => window.baia.game.daylight);
+checa(daylightAposPular === 0, 'sair da regata pelo seletor devolve o dia');
+
 // ---------- Missão 1: carona ----------
 const paradas = await page.evaluate(() =>
   window.baia.game.islands
@@ -90,7 +112,7 @@ for (let i = 0; i < paradas.length; i++) {
     await tick(6);
   }
 }
-let s = await estado();
+s = await estado();
 console.log('  missão 1:', s.chips.join(' '), s.objetivo);
 checa(s.done, 'missão 1 concluída');
 checa(s.overlay, 'tela de fim de missão 1 apareceu');
