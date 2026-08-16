@@ -1,5 +1,5 @@
 /**
- * Regressão funcional: joga as três missões teleportando o barco pelos alvos e
+ * Regressão funcional: joga as quatro missões teleportando o barco pelos alvos e
  * confere os contadores, as telas de fim de missão e a vitória.
  *
  *   npm start                 # noutro terminal, servindo em :5173
@@ -149,9 +149,85 @@ for (const portao of portoes) {
 s = await estado();
 console.log('  missão 3:', s.chips.join(' '), s.objetivo);
 checa(s.done, 'missão 3 concluída');
-checa(s.vitoria, 'tela de vitória apareceu');
+checa(s.overlay, 'tela de fim de missão 3 apareceu');
 const luz = await page.evaluate(() => window.baia.game.daylight);
 checa(luz > 0, `o sol se pôs durante a regata (daylight = ${luz.toFixed(2)})`);
+
+// ---------- Missão 4: corrida ----------
+await page.click('#next-mission-button');
+await tick(6);
+s = await estado();
+checa(s.missao === 3, 'missão 4 começou');
+
+const circuito = await page.evaluate(() =>
+  window.baia.game.mission.marks.map((m) => ({ x: m.position.x, z: m.position.z }))
+);
+const rivaisAntes = await page.evaluate(() =>
+  window.baia.game.mission.rivals.map((r) => ({ nome: r.name, x: r.group.position.x, z: r.group.position.z }))
+);
+console.log(`  circuito: ${circuito.length} boias, ${rivaisAntes.length} adversários`);
+
+// Antes de o jogador sair, deixa os adversários correrem sozinhos: é a única
+// janela do teste em que a navegação deles roda em tempo de jogo de verdade.
+const tempo0 = await page.evaluate(() => window.baia.elapsed);
+await page.waitForTimeout(4000);
+const decorrido = (await page.evaluate(() => window.baia.elapsed)) - tempo0;
+const avanco = await page.evaluate(
+  (antes) =>
+    window.baia.game.mission.rivals.map((r, i) => ({
+      nome: r.name,
+      andou: Math.hypot(r.group.position.x - antes[i].x, r.group.position.z - antes[i].z),
+      marca: r.waypoint,
+    })),
+  rivaisAntes
+);
+// Velocidade média em tempo de jogo: o mais lento do trio anda 7 nominais, e as
+// curvas tiram um pedaço — abaixo de 4 é adversário parado ou andando de lado.
+const velocidades = avanco.map((a) => a.andou / decorrido);
+checa(
+  velocidades.every((v) => v > 4),
+  `os três adversários navegaram sozinhos (${avanco
+    .map((a, i) => `${a.nome} ${velocidades[i].toFixed(1)} u/s`)
+    .join(', ')} em ${decorrido.toFixed(1)}s de jogo)`
+);
+
+// E navegaram pela água: nenhum deles pode ter entrado numa ilha.
+const encalhe = await page.evaluate(() => {
+  const { rivals } = window.baia.game.mission;
+  let pior = Infinity;
+  for (const r of rivals) {
+    for (const ilha of window.baia.game.islands) {
+      const folga =
+        Math.hypot(r.group.position.x - ilha.position.x, r.group.position.z - ilha.position.z) -
+        ilha.userData.beachRadius;
+      pior = Math.min(pior, folga);
+    }
+  }
+  return pior;
+});
+checa(encalhe > 0, `nenhum adversário encalhou (folga mínima ${encalhe.toFixed(1)})`);
+
+// Duas voltas contornando cada boia.
+for (let volta = 0; volta < 2; volta += 1) {
+  for (const boia of circuito) {
+    await teleport(boia.x, boia.z);
+    await tick(3);
+  }
+}
+s = await estado();
+console.log('  missão 4:', s.chips.join(' '), s.objetivo);
+checa(s.done, 'missão 4 concluída');
+checa(s.vitoria, 'tela de vitória apareceu no fim da corrida');
+
+const corrida = await page.evaluate(() => {
+  const m = window.baia.game.mission;
+  return { lugar: m.finalPlace, voltas: m.lap, rivais: m.rivals.map((r) => ({ nome: r.name, volta: r.lap, marca: r.waypoint })) };
+});
+checa(corrida.lugar === 1, `chegada em 1º lugar (foi ${corrida.lugar}º)`);
+checa(corrida.voltas === 2, `duas voltas completadas (foram ${corrida.voltas})`);
+
+const marcasFeitas = corrida.rivais.map((r) => `${r.nome}: volta ${r.volta}, marca ${r.marca}`).join(' | ');
+console.log(`  adversários: ${marcasFeitas}`);
 
 // Recomeçar volta tudo ao dia e à missão 1.
 await page.click('#restart-button');

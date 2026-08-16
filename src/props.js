@@ -320,7 +320,7 @@ export function createCrate() {
 }
 
 /** Boia cônica de regata: base flutuante, mastro e galhardete. */
-function createRaceBuoy(color) {
+export function createRaceBuoy(color) {
   const boia = new THREE.Group();
   const flutuador = mesh(new THREE.SphereGeometry(0.75, 14, 10), flatUnique(color), 0, 0, 0);
   flutuador.scale.set(1, 0.7, 1);
@@ -338,6 +338,10 @@ function createRaceBuoy(color) {
   boia.add(galhardete);
   boia.userData.pintaveis = [flutuador.material, cone.material, galhardete.material];
   boia.userData.galhardete = galhardete;
+  boia.userData.setActive = (ativo) => {
+    const cor = new THREE.Color(ativo ? PALETTE.flowerYellow : 0xdfe6ea);
+    for (const material of boia.userData.pintaveis) material.color.copy(cor);
+  };
   return boia;
 }
 

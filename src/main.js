@@ -122,7 +122,21 @@ window.addEventListener('resize', () => {
 rig.setMode('boat', boat);
 
 // Acesso ao estado do jogo pelo console do navegador (útil para depurar e testar).
-window.baia = { get game() { return game; }, boat, camera, rig, scene, world };
+window.baia = {
+  get game() {
+    return game;
+  },
+  // Tempo simulado desde o início: medir movimento por segundo de parede não
+  // funciona em navegador headless, onde o laço roda a poucos quadros.
+  get elapsed() {
+    return elapsed;
+  },
+  boat,
+  camera,
+  rig,
+  scene,
+  world,
+};
 
 const clock = new THREE.Clock();
 let elapsed = 0;

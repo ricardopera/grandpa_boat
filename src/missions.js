@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 import { unlit, mesh } from './materials.js';
 import { placeCharacter } from './island.js';
-import { createCrate, createGate } from './props.js';
+import { createCrate, createGate, createRaceBuoy } from './props.js';
+import { Rival, FLEET, keepApart } from './rivals.js';
 import { updateCharacter } from './character.js';
 import { waveHeight } from './world.js';
 
@@ -531,4 +532,170 @@ export class RaceMission extends Mission {
   }
 }
 
-export const MISSIONS = [RideMission, CargoMission, RaceMission];
+
+// O circuito da corrida: um oval no meio do arquipélago, com as marcas longe
+// o bastante das ilhas para as retas entre elas nunca cortarem terra.
+const CIRCUIT = [
+  { x: 0, z: 45 },
+  { x: 55, z: 10 },
+  { x: 40, z: -60 },
+  { x: -30, z: -70 },
+  { x: -65, z: -15 },
+  { x: -45, z: 35 },
+];
+
+const LAPS = 2;
+const MARK_RADIUS = 15;
+
+// Onde todo mundo larga: pouco antes da primeira marca, de proa para ela.
+const START = { x: -17.5, z: 41, heading: 1.35 };
+
+/**
+ * Missão 4 — Corrida da Baía.
+ * Três adversários, duas voltas no circuito de boias. O veleiro corre mais nas
+ * retas, o pedalinho é lento mas nunca erra a curva, e o submarino mergulha no
+ * meio do caminho. Terminar já fecha a missão; chegar em primeiro é a graça.
+ */
+export class CupMission extends Mission {
+  static id = 'corrida';
+  static title = 'Corrida da Baía';
+  static intro =
+    'Três barcos da baía desafiaram o Vovô Tonico: o veleiro Vento Sul, o submarino Sardinha e o pedalinho Pé-de-Pato. São duas voltas pelas boias do circuito — passe perto de cada marca, na ordem.';
+
+  constructor(ctx) {
+    super(ctx);
+    this.marks = [];
+    this.rivals = [];
+    this.waypoint = 0;
+    this.lap = 0;
+    this.place = 1;
+    this.finalPlace = 0;
+  }
+
+  start() {
+    const { scene, boat } = this.ctx;
+
+    CIRCUIT.forEach((ponto, i) => {
+      const boia = createRaceBuoy(i === 0 ? PALETTE.flowerYellow : 0xdfe6ea);
+      boia.name = `marca-${i + 1}`;
+      boia.position.set(ponto.x, 0, ponto.z);
+      scene.add(boia);
+      this.marks.push(boia);
+    });
+
+    FLEET.forEach((config, i) => {
+      const rival = new Rival(config, CIRCUIT, i, START);
+      scene.add(rival.group);
+      this.rivals.push(rival);
+    });
+
+    // Todo mundo na linha: o jogador larga na raia de fora, à direita.
+    boat.group.position.set(START.x + Math.cos(START.heading) * 22, 0, START.z - Math.sin(START.heading) * 22);
+    boat.heading = START.heading;
+    boat.speed = 0;
+  }
+
+  cleanup() {
+    for (const boia of this.marks) boia.parent?.remove(boia);
+    for (const rival of this.rivals) rival.group.parent?.remove(rival.group);
+    this.marks = [];
+    this.rivals = [];
+  }
+
+  /** Progresso do jogador na mesma escala usada pelos rivais. */
+  progress() {
+    const { boat } = this.ctx;
+    const alvo = CIRCUIT[this.waypoint];
+    const distancia = Math.hypot(alvo.x - boat.position.x, alvo.z - boat.position.z);
+    return this.lap * CIRCUIT.length + this.waypoint + 1 / (1 + distancia / 40);
+  }
+
+  chips() {
+    const lugar = ['1º', '2º', '3º', '4º'][Math.min(3, this.place - 1)];
+    const volta = Math.min(this.lap + 1, LAPS);
+    return [`🏁 ${lugar}`, `🔄 volta ${volta}/${LAPS}`];
+  }
+
+  objective() {
+    if (this.done) {
+      return this.finalPlace === 1
+        ? 'Primeiro lugar na Corrida da Baía! 🏆'
+        : `Corrida terminada em ${this.finalPlace}º lugar. 🏁`;
+    }
+    return `Contorne a boia ${this.waypoint + 1} de ${CIRCUIT.length} — volta ${Math.min(this.lap + 1, LAPS)} de ${LAPS}.`;
+  }
+
+  markers() {
+    const lista = this.marks.map((boia, i) => ({
+      x: boia.position.x,
+      z: boia.position.z,
+      color: i === this.waypoint ? '#ffe45e' : '#ffffff',
+      radius: i === this.waypoint ? 4 : 2,
+    }));
+    for (const rival of this.rivals) {
+      lista.push({ x: rival.group.position.x, z: rival.group.position.z, color: '#e2603f', radius: 3 });
+    }
+    return lista;
+  }
+
+  update(dt, time) {
+    const { boat, hud, sound, islands } = this.ctx;
+
+    for (const rival of this.rivals) {
+      rival.update(dt, time, LAPS, islands);
+      rival.pushAway(boat);
+    }
+    // Os adversários também não se atravessam entre si.
+    for (let i = 0; i < this.rivals.length; i += 1) {
+      for (let j = i + 1; j < this.rivals.length; j += 1) {
+        keepApart(this.rivals[i], this.rivals[j]);
+      }
+    }
+
+    // As marcas boiam de verdade, e a da vez acende de amarelo.
+    this.marks.forEach((boia, i) => {
+      boia.position.y = waveHeight(boia.position.x, boia.position.z, time) - 0.1;
+      boia.userData.galhardete.rotation.z = Math.sin(time * 4 + i) * 0.15;
+      boia.userData.setActive(i === this.waypoint);
+    });
+
+    // Classificação: quem andou mais do percurso vai na frente.
+    const tabela = [
+      { nome: 'você', jogador: true, valor: this.progress() },
+      ...this.rivals.map((r) => ({ nome: r.name, jogador: false, valor: r.progress(LAPS) })),
+    ].sort((a, b) => b.valor - a.valor);
+    this.place = tabela.findIndex((linha) => linha.jogador) + 1;
+
+    if (this.done) return;
+
+    const alvo = CIRCUIT[this.waypoint];
+    const distancia = Math.hypot(alvo.x - boat.position.x, alvo.z - boat.position.z);
+    if (distancia >= MARK_RADIUS) return;
+
+    this.waypoint += 1;
+    if (this.waypoint < CIRCUIT.length) {
+      sound.board();
+      this.ctx.refresh();
+      return;
+    }
+
+    this.waypoint = 0;
+    this.lap += 1;
+    boat.ringBell();
+    if (this.lap < LAPS) {
+      sound.deliver();
+      hud.toast(`Volta ${this.lap + 1} de ${LAPS}! Você está em ${this.place}º 🏁`, 4);
+      this.ctx.refresh();
+      return;
+    }
+
+    this.finalPlace = this.place;
+    hud.toast(
+      this.finalPlace === 1 ? 'Bandeirada em primeiro lugar! 🏆' : `Chegada em ${this.finalPlace}º lugar! 🏁`,
+      5
+    );
+    this.finish();
+  }
+}
+
+export const MISSIONS = [RideMission, CargoMission, RaceMission, CupMission];
