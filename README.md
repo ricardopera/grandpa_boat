@@ -2,7 +2,7 @@
 
 Jogo em [three.js](https://threejs.org/) num arquipélago tropical: o mar de turquesa da
 **Baía Dourada**, ilhas de areia clara com casinhas coloridas e o barco verde-mar do
-**Vovô Tonico**, uma capivara de quepe de capitão. São três missões seguidas, e tudo é
+**Vovô Tonico**, uma capivara de quepe de capitão. São quatro missões seguidas, e tudo é
 modelado com geometria simples e cores chapadas — não há nenhuma imagem ou modelo 3D
 externo no projeto.
 
@@ -31,7 +31,7 @@ Qualquer servidor estático serve — o jogo é HTML + módulos ES puros. Não d
 o `index.html` direto pelo `file://` porque o navegador bloqueia módulos ES nesse
 protocolo; por isso o `npm start` sobe um servidor mínimo (`server.mjs`, sem dependências).
 
-## As três missões
+## As quatro missões
 
 O painel do canto esquerdo mostra sempre em que missão você está, os contadores dela e o
 que fazer agora. O minimapa marca o alvo da vez.
@@ -58,6 +58,22 @@ O sol começa a se pôr e o céu, o mar e a luz das ilhas viram dourados. Dê a 
 arquipélago cruzando os **seis portões de boias na ordem** — a dupla de boias acesa em
 amarelo é sempre a próxima — antes que o relógio zere. Se o tempo acabar, a regata
 recomeça do primeiro portão.
+
+### 4. Corrida da Baía 🏁
+
+![A largada da corrida](docs/print-corrida.png)
+
+Três barcos desafiam o Vovô Tonico num circuito de seis boias, **duas voltas**:
+
+- **Vento Sul**, um veleiro — o mais rápido nas retas;
+- **Sardinha**, um submarino de estaleiro que **mergulha e volta à tona** no meio do
+  caminho, soltando bolhas;
+- **Pé-de-Pato**, um pedalinho de rodas de pás e guarda-sol — lento, mas nunca erra a curva.
+
+Cada um segue as boias com o seu próprio jeito de acelerar e curvar, então as posições
+trocam durante a prova. Encostar num adversário empurra os dois e tira velocidade. O
+painel mostra a colocação e a volta; terminar já fecha a missão, mas a graça é chegar em
+primeiro.
 
 ## Controles
 
@@ -102,7 +118,8 @@ server.mjs          servidor estático mínimo para desenvolvimento
 src/
   main.js           inicialização, laço de animação e teclas globais
   game.js           o arquipélago, os moradores e o encadeamento das missões
-  missions.js       as três missões (carona, encomendas e regata)
+  missions.js       as quatro missões (carona, encomendas, regata e corrida)
+  rivals.js         os barcos adversários da corrida e a navegação deles
   world.js          mar, céu, sol, nuvens, gaivotas, luzes e a virada para o fim de tarde
   island.js         monta cada ilha (calota de grama, praia, casa, quintal, cais, farol)
   house.js          casas de duas águas com telhas, janelas, antena e trepadeira
@@ -117,7 +134,7 @@ src/
   textures.js       texturas geradas em canvas (telhas, bandeira do barco)
   palette.js        as cores da Baía Dourada
 test/
-  playthrough.mjs   regressão: joga as três missões inteiras e confere os contadores
+  playthrough.mjs   regressão: joga as quatro missões e confere contadores e encaixes
 vendor/             three.js r185 e OrbitControls (cópia local, jogo roda offline)
 ```
 
@@ -128,9 +145,14 @@ npm start                    # num terminal
 npm i playwright && npm test # noutro
 ```
 
-O teste abre o jogo num Chromium, teleporta o barco pelos alvos das três missões e
-confere os contadores, as telas de fim de missão, a vitória, a virada do pôr do sol e o
-recomeço — além de falhar se aparecer qualquer erro de console.
+O teste abre o jogo num Chromium, teleporta o barco pelos alvos das quatro missões e
+confere os contadores, as telas de fim de missão, a vitória, a virada do pôr do sol, a
+colocação na corrida e o recomeço — além de falhar se aparecer qualquer erro de console.
+
+Ele também mede duas coisas que foto não resolve: se a bandeira está mesmo encostada no
+mastro (um pano em movimento *parece* encostado em certas fases do balanço) e se os
+adversários da corrida navegam sozinhos, em velocidade medida no tempo simulado do jogo
+— tempo de parede não serve, porque em navegador headless o laço roda a poucos quadros.
 
 ## Detalhes de implementação
 
